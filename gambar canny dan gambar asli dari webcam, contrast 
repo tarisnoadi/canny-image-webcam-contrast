@@ -1,0 +1,108 @@
+#include <iostream>
+#include "opencv\cv.h"
+#include  "opencv\highgui.h"
+
+using namespace std;
+ 
+IplImage* pFrame;
+IplImage* pProcessedFrame;
+IplImage* tempFrame;
+ 
+int maxLowThreshold = 1024;
+int lowSliderPosition = 150;
+ 
+int maxHighThreshold = 1024;
+int highSliderPosition = 250;
+ 
+IplImage* findEdges(IplImage* sourceFrame, double thelowThreshold, double theHighThreshold, double theAperture)
+{
+  cvCvtColor(sourceFrame, tempFrame, CV_RGB2GRAY);
+ 
+	cvCanny(tempFrame, tempFrame, thelowThreshold, theHighThreshold, theAperture);
+ 
+	return tempFrame;
+}
+ 
+void onLowThresholdSlide(int theSliderValue)
+{
+	lowSliderPosition = theSliderValue;
+}
+ 
+void onHighThresholdSlide(int theSliderValue)
+{
+	highSliderPosition = theSliderValue;
+}
+ 
+int main(int argc, char** argv)
+{
+	// buat du halaman
+	cvNamedWindow("WebCam", CV_WINDOW_AUTOSIZE);
+	cvNamedWindow("Processed WebCam", CV_WINDOW_AUTOSIZE);
+ 
+	cvCreateTrackbar("Low Threshold", "Processed WebCam", &lowSliderPosition, maxLowThreshold, onLowThresholdSlide);
+ 
+	// buat high threshold slider
+	cvCreateTrackbar("High Threshold", "Processed WebCam", &highSliderPosition, maxHighThreshold, onHighThresholdSlide);
+ 
+	// buat CvCapture object ke data dari webcam
+	CvCapture* pCapture;
+ 
+	// memulai capture data dari webcam
+	pCapture = cvCaptureFromCAM(CV_CAP_ANY);
+ 
+	// image properties
+	cout << "Width of frame: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_FRAME_WIDTH) << endl; 		// Width of the frames in the video stream
+	cout << "Height of frame: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_FRAME_HEIGHT) << endl; 	// Height of the frames in the video stream
+	cout << "Image brightness: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_BRIGHTNESS) << endl; 	// Brightness of the image (only for cameras)
+	cout << "Image contrast: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_CONTRAST) << endl; 		// Contrast of the image (only for cameras)
+	cout << "Image saturation: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_SATURATION) << endl;		// Saturation of the image (only for cameras)
+	cout << "Image hue: " << cvGetCaptureProperty(pCapture, CV_CAP_PROP_HUE) << endl;			// Hue of the image (only for cameras)
+ 
+	pFrame = cvQueryFrame(pCapture);
+ 
+	pProcessedFrame = cvCreateImage(cvSize(pFrame->width, pFrame->height), IPL_DEPTH_8U, 1);
+	
+	tempFrame = cvCreateImage(cvSize(pFrame->width, pFrame->height), IPL_DEPTH_8U, 1);
+ 
+	char keypress;
+	bool quit = false;
+ 
+	while (quit == false)
+	{
+		// buat gambar dari capture 
+		pFrame = cvQueryFrame(pCapture);
+ 
+		// menggambar bingkai asli dari gambar
+		cvShowImage("WebCam", pFrame);
+ 
+		// memproses grame temukan edges
+		pProcessedFrame = findEdges(pFrame, lowSliderPosition, highSliderPosition, 3);
+ 
+		// menampilkan outputan process webcam
+		cvShowImage("Processed WebCam", pProcessedFrame);
+ 
+		//tunggu hingga ke 20
+		keypress = cvWaitKey(20);
+ 
+		// menetapkan flag
+		if (keypress == 27)
+		{
+			quit = true;
+		}
+ 
+	} //akhiri looping
+ 
+	// menampilkan aliran objek
+	cvReleaseCapture(&pCapture);
+ 
+	// tampilkan gambar
+	cvReleaseImage(&pFrame);
+	cvReleaseImage(&pProcessedFrame);
+	// Hal ini menyebabkan kesalahan jika Anda tidak mengaturnya ke NULL sebelum melepaskannya. Mungkin karena kita memberikan
+	// ke Bingkai Olahan sebagai hasil akhir dari Bingkai menemukan fungsi Tepi, dan telah dirilis Diproses!!
+	tempFrame = NULL;
+	cvReleaseImage(&tempFrame);
+ 
+	// hapus semua window
+	cvDestroyAllWindows();
+}
